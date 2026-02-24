@@ -1,6 +1,6 @@
 {
   "name": "@zhiaiwan/event-bus",
-  "version": "0.0.0",
+  "version": "1.0.0",
   "author": "Lixiaofei 61538187@qq.com",
   "description": "A full-scenario, type-safe EventBus with pattern matching, middleware, replay/sticky, collect strategies, runtime adapters, and observability hooks.",
   "bugs": {
