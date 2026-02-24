@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@zhiaiwan/event-bus - pattern-utils</title>
+    <link rel="stylesheet" href="../shared.css" />
+  </head>
+  <body>
+    <div class="page">
+      <div class="page-header">
+        <h1>Pattern 工具函数示例</h1>
+        <p>演示 <code>isPatternMatch</code> 与 <code>patternToRegExp</code> 的直接使用方式。</p>
+      </div>
+
+      <div class="card">
+        <h3>工具函数验证</h3>
+        <div class="btn-group">
+          <button data-action="validate-utils" class="btn">验证工具函数</button>
+          <button data-action="clear" class="btn btn-success">清空输出</button>
+        </div>
+        <pre id="out" class="output"></pre>
+      </div>
+    </div>
+
+    <script type="importmap">
+      { "imports": { "@zhiaiwan/event-bus": "../../dist/index.js" } }
+    </script>
+    <script type="module">
+      import { isPatternMatch, patternToRegExp } from '@zhiaiwan/event-bus'
+
+      const out = document.getElementById('out')
+
+      const actions = {
+        'validate-utils'() {
+          const checks = [
+            {
+              name: 'isPatternMatch(user.*, user.login)',
+              value: isPatternMatch('user.*', 'user.login'),
+            },
+            {
+              name: 'isPatternMatch(user.*, user.profile.update)',
+              value: isPatternMatch('user.*', 'user.profile.update'),
+            },
+            {
+              name: 'patternToRegExp(order.**).test(order.pay.success)',
+              value: patternToRegExp('order.**').test('order.pay.success'),
+            },
+            {
+              name: 'patternToRegExp(order.*.created).test(order.web.created)',
+              value: patternToRegExp('order.*.created').test('order.web.created'),
+            },
+          ]
+          out.textContent = JSON.stringify(checks, null, 2)
+        },
+        clear() {
+          out.textContent = ''
+        },
+      }
+
+      document.addEventListener('click', (event) => {
+        const target = event.target
+        if (!(target instanceof HTMLElement)) return
+        const action = target.dataset.action
+        if (!action || !(action in actions)) return
+        actions[action]()
+      })
+    </script>
+  </body>
+</html>

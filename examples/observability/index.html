@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head><meta charset="UTF-8" /><title>observability</title><link rel="stylesheet" href="../shared.css" /></head>
+  <body>
+    <div class="page"><div class="page-header"><h1>Observability</h1></div><div class="card"><button id="run" class="btn">运行</button><pre id="out" class="output"></pre></div></div>
+    <script type="importmap">{ "imports": { "@zhiaiwan/event-bus": "../../dist/index.js" } }</script>
+    <script type="module">
+      import { createEventBus } from '@zhiaiwan/event-bus'
+      const out = document.getElementById('out')
+      const reporter = { onEmit: () => {}, onHandled: () => {}, onError: () => {} }
+      const bus = createEventBus({
+        reporter,
+        middleware: [(ctx, next) => { ctx.meta.source = 'example'; return next() }],
+      })
+      bus.on('trace.demo', ([msg]) => msg.toUpperCase())
+      document.getElementById('run').onclick = async () => {
+        await bus.emit('trace.demo', ['hello'], { trace: { traceId: 't-1', spanId: 's-1' } })
+        out.textContent = JSON.stringify(bus.metrics(), null, 2)
+      }
+    </script>
+  </body>
+</html>

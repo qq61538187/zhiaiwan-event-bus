@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>adapters-node-worker</title>
+    <link rel="stylesheet" href="../shared.css" />
+  </head>
+  <body>
+    <div class="page">
+      <div class="page-header">
+        <h1>Node线程适配器示例</h1>
+        <p>点击按钮会在 Node 侧执行 <code>worker_threads</code> 验证脚本并返回结果。</p>
+      </div>
+      <div class="card">
+        <div class="btn-group">
+          <button id="run" class="btn">运行 Node 侧验证</button>
+          <button id="clear" class="btn btn-success">清空输出</button>
+        </div>
+        <pre id="out" class="output"></pre>
+      </div>
+      <div class="card">
+        <h3>Node 脚本片段</h3>
+        <pre class="output">import { MessageChannel } from 'node:worker_threads'
+import { createEventBus, InMemoryAdapter, NodeWorkerThreadsAdapter } from '@zhiaiwan/event-bus'
+
+const { port1, port2 } = new MessageChannel()
+const busA = createEventBus({ adapters: [new InMemoryAdapter(), new NodeWorkerThreadsAdapter(port1)] })
+const busB = createEventBus({ adapters: [new InMemoryAdapter(), new NodeWorkerThreadsAdapter(port2)] })</pre>
+      </div>
+    </div>
+    <script type="module">
+      const out = document.getElementById('out')
+
+      document.getElementById('run').onclick = async () => {
+        const response = await fetch('/adapters-node-worker/server?mode=run')
+        const data = await response.json()
+        out.textContent = JSON.stringify(data, null, 2)
+      }
+
+      document.getElementById('clear').onclick = () => {
+        out.textContent = ''
+      }
+    </script>
+  </body>
+</html>

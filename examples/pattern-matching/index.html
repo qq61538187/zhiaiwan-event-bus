@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <title>pattern-matching</title>
+    <link rel="stylesheet" href="../shared.css" />
+  </head>
+  <body>
+    <div class="page">
+      <div class="page-header">
+        <h1>Pattern Matching</h1>
+        <p>演示 <code>user.*</code> 与 <code>user.**</code>。</p>
+      </div>
+      <div class="card">
+        <div class="btn-group">
+          <button class="btn" id="run">运行</button>
+        </div>
+        <pre class="output" id="out"></pre>
+      </div>
+    </div>
+    <script type="importmap">
+      { "imports": { "@zhiaiwan/event-bus": "../../dist/index.js" } }
+    </script>
+    <script type="module">
+      import { createEventBus } from '@zhiaiwan/event-bus'
+      const out = document.getElementById('out')
+      const bus = createEventBus()
+      const lines = []
+      bus.onPattern('user.*', ([event, id]) => lines.push(`* => ${event} ${id}`))
+      bus.onPattern('user.**', ([event, id]) => lines.push(`** => ${event} ${id}`))
+      document.getElementById('run').onclick = async () => {
+        lines.length = 0
+        await bus.emit('user.login', ['u1'])
+        out.textContent = lines.join('\n')
+      }
+    </script>
+  </body>
+</html>

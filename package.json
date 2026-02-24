@@ -1,0 +1,95 @@
+{
+  "name": "@zhiaiwan/event-bus",
+  "version": "0.0.0",
+  "author": "Lixiaofei 61538187@qq.com",
+  "description": "A full-scenario, type-safe EventBus with pattern matching, middleware, replay/sticky, collect strategies, runtime adapters, and observability hooks.",
+  "bugs": {
+    "url": "https://github.com/qq61538187/zhiaiwan-event-bus/issues"
+  },
+  "homepage": "https://github.com/qq61538187/zhiaiwan-event-bus",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./global": {
+      "types": "./dist/global.d.ts"
+    },
+    "./package.json": "./package.json"
+  },
+  "sideEffects": false,
+  "files": [
+    "dist",
+    "README.md",
+    "README.en.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "dev": "vite build --watch",
+    "build": "vite build",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest",
+    "test:run": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "lint": "biome check ./src ./tests",
+    "fix": "biome check --write --verbose ./src ./tests",
+    "prepublishOnly": "pnpm run build && pnpm run test:run",
+    "changeset:version": "changeset version",
+    "changeset:publish": "changeset publish",
+    "prepare": "husky",
+    "examples": "node examples/server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/qq61538187/zhiaiwan-event-bus.git"
+  },
+  "keywords": [
+    "zhiaiwan",
+    "event-bus",
+    "event-emitter",
+    "pubsub",
+    "pattern-matching",
+    "middleware",
+    "replay",
+    "sticky",
+    "collect",
+    "broadcastchannel",
+    "worker-threads",
+    "observability",
+    "typescript",
+    "type-safe"
+  ],
+  "license": "MIT",
+  "devDependencies": {
+    "@biomejs/biome": "^2.4.4",
+    "@changesets/cli": "^2.29.8",
+    "@commitlint/cli": "^20.4.2",
+    "@commitlint/config-conventional": "^20.4.2",
+    "@rollup/plugin-terser": "^0.4.4",
+    "@vitest/coverage-v8": "^4.0.18",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.2.7",
+    "typescript": "^5.9.3",
+    "vite": "^7.3.1",
+    "vite-plugin-dts": "^4.5.4",
+    "vitest": "^4.0.18"
+  },
+  "lint-staged": {
+    "*.{ts,tsx,js,jsx,json}": [
+      "biome check --write --no-errors-on-unmatched"
+    ]
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild"
+    ]
+  }
+}

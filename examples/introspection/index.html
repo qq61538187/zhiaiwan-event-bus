@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@zhiaiwan/event-bus - introspection</title>
+    <link rel="stylesheet" href="../shared.css" />
+  </head>
+  <body>
+    <div class="page">
+      <div class="page-header">
+        <h1>状态观测示例</h1>
+        <p>演示 <code>listenerCount</code> / <code>eventNames</code> / <code>replayFor</code> / <code>metrics</code>。</p>
+      </div>
+      <div class="card">
+        <h3>交互区</h3>
+        <div class="btn-group">
+          <button data-action="bind-greet" class="btn">绑定 greet</button>
+          <button data-action="bind-pattern" class="btn">绑定 onPattern</button>
+          <button data-action="emit" class="btn">触发 greet</button>
+          <button data-action="snapshot" class="btn btn-success">打印快照</button>
+          <button data-action="destroy" class="btn">destroy()</button>
+          <button data-action="clear" class="btn">清空日志</button>
+        </div>
+        <div id="output" class="output mono"></div>
+      </div>
+    </div>
+
+    <script type="importmap">
+      { "imports": { "@zhiaiwan/event-bus": "../../dist/index.js" } }
+    </script>
+    <script type="module">
+      import { createEventBus } from '@zhiaiwan/event-bus'
+
+      const output = document.getElementById('output')
+      const log = (line) => {
+        output.textContent += `${line}\n`
+      }
+      const bus = createEventBus({
+        replay: { count: 5, ttlMs: 60_000 },
+        sticky: { enabled: true },
+      })
+
+      const snapshot = () => ({
+        greetCount: bus.listenerCount('greet'),
+        patternCount: bus.listenerCount('greet.*'),
+        eventNames: bus.eventNames(),
+        replayGreet: bus.replayFor('greet'),
+        metrics: bus.metrics(),
+      })
+
+      const actions = {
+        bindGreet() {
+          bus.on('greet', ([name]) => {
+            log(`[greet] ${name}`)
+          })
+          log('bound greet listener')
+        },
+        bindPattern() {
+          bus.onPattern('greet.*', ([event, name]) => {
+            log(`[pattern] ${event} -> ${name}`)
+          })
+          log('bound pattern listener: greet.*')
+        },
+        async emit() {
+          const name = `user-${Math.floor(Math.random() * 100)}`
+          await bus.emit('greet', [name])
+          await bus.emit('greet.vip', [name])
+          log('emit greet + greet.vip')
+        },
+        snapshot() {
+          log(JSON.stringify(snapshot(), null, 2))
+        },
+        async destroy() {
+          await bus.destroy()
+          log('destroy() called')
+          log(JSON.stringify(snapshot(), null, 2))
+        },
+        clear() {
+          output.textContent = ''
+        },
+      }
+
+      document.addEventListener('click', (e) => {
+        const action = e.target?.dataset?.action
+        if (!action) return
+        const key = action.replace(/-([a-z])/g, (_, c) => c.toUpperCase())
+        if (actions[key]) actions[key]()
+      })
+    </script>
+  </body>
+</html>

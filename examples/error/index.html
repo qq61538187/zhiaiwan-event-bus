@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@zhiaiwan/event-bus - error</title>
+    <link rel="stylesheet" href="../shared.css" />
+  </head>
+  <body>
+    <div class="page">
+      <div class="page-header">
+        <h1>Error 场景示例</h1>
+        <p>演示监听器抛错后，如何通过 <code>reporter.onError</code> 统一记录异常。</p>
+      </div>
+
+      <div class="card">
+        <h3>交互区</h3>
+        <div class="btn-group">
+          <button data-action="bind-error-listener" class="btn">绑定 error 监听</button>
+          <button data-action="bind-faulty" class="btn">绑定会抛错监听</button>
+          <button data-action="emit" class="btn btn-success">触发 request</button>
+          <button data-action="clear" class="btn">清空日志</button>
+        </div>
+        <div id="output" class="output mono"></div>
+      </div>
+    </div>
+
+    <script type="importmap">
+      { "imports": { "@zhiaiwan/event-bus": "../../dist/index.js" } }
+    </script>
+    <script type="module">
+      import { createEventBus } from '@zhiaiwan/event-bus'
+
+      const output = document.getElementById('output')
+      const log = (line) => {
+        output.textContent += `${line}\n`
+      }
+
+      const bus = createEventBus({
+        reporter: {
+          onError: (event, error) => {
+            log(`[reporter.onError] event=${event} error=${String(error)}`)
+          },
+        },
+      })
+      let hasFaulty = false
+
+      const actions = {
+        bindErrorListener() {
+          log('reporter.onError 已在 createEventBus 中启用')
+        },
+        bindFaulty() {
+          if (hasFaulty) {
+            log('faulty listener already bound')
+            return
+          }
+          hasFaulty = true
+          bus.on('request', ([path]) => {
+            if (path.includes('fail')) {
+              throw new Error(`request failed: ${path}`)
+            }
+            log(`[request] ok: ${path}`)
+          })
+          log('faulty request listener bound')
+        },
+        async emit() {
+          const res = await fetch('/error/server?path=/api/fail')
+          const data = await res.json()
+          log(`[emit] request path from mock: ${data.data.path}`)
+          try {
+            const matched = await bus.emit('request', [data.data.path])
+            log(`[emit] matched=${matched}`)
+            log('[emit] finished')
+          } catch (error) {
+            const hasListener = bus.listenerCount('request') > 0
+            log(`[emit] matched=${hasListener} (listener exists)`)
+            log(`[emit] rejected: ${String(error)}`)
+            log('[emit] finished with error')
+          }
+        },
+        clear() {
+          output.textContent = ''
+        },
+      }
+
+      document.addEventListener('click', (e) => {
+        const action = e.target?.dataset?.action
+        if (!action) return
+        const key = action.replace(/-([a-z])/g, (_, c) => c.toUpperCase())
+        if (actions[key]) void actions[key]()
+      })
+    </script>
+  </body>
+</html>

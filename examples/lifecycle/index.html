@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@zhiaiwan/event-bus - lifecycle</title>
+    <link rel="stylesheet" href="../shared.css" />
+  </head>
+  <body>
+    <div class="page">
+      <div class="page-header">
+        <h1>生命周期管理示例</h1>
+        <p>演示 <code>pause</code> / <code>resume</code> / <code>offGroup</code> / <code>unsubscribeByTag</code> / <code>destroy</code>。</p>
+      </div>
+      <div class="card">
+        <h3>交互区</h3>
+        <div class="btn-group">
+          <button data-action="bind" class="btn">绑定监听器</button>
+          <button data-action="emit" class="btn btn-success">触发 greet</button>
+          <button data-action="pause" class="btn">pause(greet)</button>
+          <button data-action="resume" class="btn">resume(greet)</button>
+          <button data-action="off-group" class="btn">offGroup(demo)</button>
+          <button data-action="off-tag" class="btn">unsubscribeByTag(secondary)</button>
+          <button data-action="destroy" class="btn">destroy</button>
+          <button data-action="clear" class="btn">清空日志</button>
+        </div>
+        <div id="output" class="output mono"></div>
+      </div>
+    </div>
+
+    <script type="importmap">
+      { "imports": { "@zhiaiwan/event-bus": "../../dist/index.js" } }
+    </script>
+    <script type="module">
+      import { createEventBus } from '@zhiaiwan/event-bus'
+
+      const output = document.getElementById('output')
+      const log = (line) => {
+        output.textContent += `${line}\n`
+      }
+
+      const bus = createEventBus()
+      let bound = false
+
+      const actions = {
+        bind() {
+          if (bound) return
+          bound = true
+          bus.on('greet', ([name]) => log(`[primary] hello ${name}`), {
+            group: 'demo',
+            tags: ['primary'],
+          })
+          bus.on('greet', ([name]) => log(`[secondary] hello ${name}`), {
+            group: 'demo',
+            tags: ['secondary'],
+          })
+          log('bound two listeners on "greet" (group=demo)')
+          log(`listenerCount(greet)=${bus.listenerCount('greet')}`)
+        },
+        async emit() {
+          await bus.emit('greet', ['Alice'])
+          log('emit finished')
+        },
+        pause() {
+          bus.pause('greet')
+          log('pause(greet)')
+        },
+        resume() {
+          bus.resume('greet')
+          log('resume(greet)')
+        },
+        offGroup() {
+          bus.offGroup('demo')
+          log('offGroup(demo)')
+          log(`listenerCount(greet)=${bus.listenerCount('greet')}`)
+        },
+        offTag() {
+          bus.unsubscribeByTag('secondary')
+          log('unsubscribeByTag(secondary)')
+          log(`listenerCount(greet)=${bus.listenerCount('greet')}`)
+        },
+        async destroy() {
+          await bus.destroy()
+          log('destroy() completed')
+          log(`eventNames=${JSON.stringify(bus.eventNames())}`)
+        },
+        clear() {
+          output.textContent = ''
+        },
+      }
+
+      document.addEventListener('click', (e) => {
+        const action = e.target?.dataset?.action
+        if (!action) return
+        const key = action.replace(/-([a-z])/g, (_, c) => c.toUpperCase())
+        if (actions[key]) void actions[key]()
+      })
+    </script>
+  </body>
+</html>

@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@zhiaiwan/event-bus - async</title>
+    <link rel="stylesheet" href="../shared.css" />
+  </head>
+  <body>
+    <div class="page">
+      <div class="page-header">
+        <h1>Async 监听器示例</h1>
+        <p>演示异步监听器默认会被 <code>emit</code> 等待完成，并统计总耗时。</p>
+      </div>
+
+      <div class="card">
+        <h3>交互区</h3>
+        <div class="btn-group">
+          <button data-action="bind" class="btn">绑定监听器</button>
+          <button data-action="emit" class="btn btn-success">触发 async-task</button>
+          <button data-action="clear" class="btn">清空日志</button>
+        </div>
+        <div id="output" class="output mono"></div>
+      </div>
+    </div>
+
+    <script type="importmap">
+      { "imports": { "@zhiaiwan/event-bus": "../../dist/index.js" } }
+    </script>
+    <script type="module">
+      import { createEventBus } from '@zhiaiwan/event-bus'
+
+      const output = document.getElementById('output')
+      const log = (line) => {
+        output.textContent += `${line}\n`
+      }
+
+      const bus = createEventBus()
+      let bound = false
+
+      const actions = {
+        bind() {
+          if (bound) {
+            log('already bound')
+            return
+          }
+          bound = true
+          bus.on('async-task', async ([id]) => {
+            log(`[listener#1] start task ${id}`)
+            const res = await fetch(`/async/server?delay=160&id=${id}`)
+            const data = await res.json()
+            log(`[listener#1] done, server delay=${data.data.delay}`)
+          })
+          bus.on('async-task', async ([id]) => {
+            log(`[listener#2] start task ${id}`)
+            await new Promise((resolve) => setTimeout(resolve, 60))
+            log(`[listener#2] done task ${id}`)
+          })
+          log('async listeners bound')
+        },
+        async emit() {
+          const id = Math.random().toString(16).slice(2, 7)
+          const startAt = performance.now()
+          log(`[emit] start ${id}`)
+          await bus.emit('async-task', [id])
+          const elapsed = Math.round(performance.now() - startAt)
+          log(`[emit] finished ${id} (all async listeners resolved, ${elapsed}ms)`)
+        },
+        clear() {
+          output.textContent = ''
+        },
+      }
+
+      document.addEventListener('click', (e) => {
+        const action = e.target?.dataset?.action
+        if (action && actions[action]) void actions[action]()
+      })
+    </script>
+  </body>
+</html>

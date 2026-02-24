@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@zhiaiwan/event-bus - adapters-browser</title>
+    <link rel="stylesheet" href="../shared.css" />
+  </head>
+  <body>
+    <div class="page">
+      <div class="page-header">
+        <h1>浏览器适配器</h1>
+        <p>演示 <code>InMemoryAdapter</code>、<code>BroadcastChannelAdapter</code> 与 <code>WebWorkerAdapter</code>。</p>
+      </div>
+
+      <div class="card">
+        <h3>InMemory + BroadcastChannel</h3>
+        <div class="btn-group">
+          <button data-action="run-broadcast" class="btn">运行 InMemory + BroadcastChannel</button>
+          <button data-action="clear" class="btn btn-success">清空输出</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>WebWorkerAdapter（MessageChannel）</h3>
+        <div class="btn-group">
+          <button data-action="run-webworker" class="btn">运行 WebWorkerAdapter (MessageChannel)</button>
+        </div>
+        <p class="mt-sm">使用 <code>MessageChannel</code> 模拟 Worker 双端通信，验证跨端消息分发链路。</p>
+      </div>
+
+      <pre id="out" class="log"></pre>
+    </div>
+
+    <script type="importmap">
+      { "imports": { "@zhiaiwan/event-bus": "../../dist/index.js" } }
+    </script>
+    <script type="module">
+      import {
+        BroadcastChannelAdapter,
+        InMemoryAdapter,
+        WebWorkerAdapter,
+        createEventBus,
+      } from '@zhiaiwan/event-bus'
+
+      const out = document.getElementById('out')
+      const log = (line) => {
+        out.textContent += `${line}\n`
+      }
+
+      const actions = {
+        async 'run-broadcast'() {
+          const channel = `bus-demo-${Date.now()}`
+          const adapters = [new InMemoryAdapter(), new BroadcastChannelAdapter(channel)]
+          const bus = createEventBus({ adapters })
+
+          bus.on('chat.message', ([text]) => {
+            log(`[BroadcastChannel] ${text}`)
+          })
+
+          await bus.emit('chat.message', ['hello from InMemory + BroadcastChannel'])
+          await bus.destroy()
+        },
+        async 'run-webworker'() {
+          const { port1, port2 } = new MessageChannel()
+          port1.start?.()
+          port2.start?.()
+
+          const busA = createEventBus({
+            adapters: [new InMemoryAdapter(), new WebWorkerAdapter(port1)],
+          })
+          const busB = createEventBus({
+            adapters: [new InMemoryAdapter(), new WebWorkerAdapter(port2)],
+          })
+
+          const delivered = new Promise((resolve) => {
+            busB.on('worker.message', ([text]) => {
+              log(`[WebWorkerAdapter] ${text}`)
+              resolve(true)
+            })
+          })
+
+          await busA.emit('worker.message', ['hello from MessageChannel'])
+          await Promise.race([
+            delivered,
+            new Promise((resolve) => setTimeout(resolve, 500)),
+          ])
+
+          await busA.destroy()
+          await busB.destroy()
+          port1.close()
+          port2.close()
+        },
+        clear() {
+          out.textContent = ''
+        },
+      }
+
+      document.addEventListener('click', (event) => {
+        const target = event.target
+        if (!(target instanceof HTMLElement)) return
+        const action = target.dataset.action
+        if (!action || !(action in actions)) return
+        void actions[action]()
+      })
+    </script>
+  </body>
+</html>

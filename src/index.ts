@@ -1,0 +1,7 @@
+export { BroadcastChannelAdapter } from './adapters/broadcast-channel'
+export { InMemoryAdapter } from './adapters/in-memory'
+export { NodeWorkerThreadsAdapter } from './adapters/node-worker-threads'
+export { WebWorkerAdapter } from './adapters/web-worker'
+export { createEventBus, EventBus } from './core'
+export { isPatternMatch, patternToRegExp } from './matcher'
+export type * from './types'

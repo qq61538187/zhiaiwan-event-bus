@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@zhiaiwan/event-bus - namespace</title>
+    <link rel="stylesheet" href="../shared.css" />
+  </head>
+  <body>
+    <div class="page">
+      <div class="page-header">
+        <h1>命名空间示例</h1>
+        <p>演示通过 dot 风格事件名（如 <code>chat.message</code>、<code>user.login</code>）组织命名空间。</p>
+      </div>
+
+      <div class="card">
+        <h3>交互区</h3>
+        <div class="btn-group">
+          <button data-action="bind" class="btn">绑定监听器</button>
+          <button data-action="emit-chat" class="btn btn-success">触发 chat.message</button>
+          <button data-action="emit-user" class="btn">触发 user.login</button>
+          <button data-action="clear" class="btn">清空日志</button>
+        </div>
+        <div id="output" class="output mono"></div>
+      </div>
+    </div>
+
+    <script type="importmap">
+      { "imports": { "@zhiaiwan/event-bus": "../../dist/index.js" } }
+    </script>
+    <script type="module">
+      import { createEventBus } from '@zhiaiwan/event-bus'
+
+      const output = document.getElementById('output')
+      const log = (...args) => {
+        output.textContent += `${args.map(String).join(' ')}\n`
+      }
+
+      const bus = createEventBus({ debug: true })
+
+      let bound = false
+      const actions = {
+        bind() {
+          if (bound) return
+          bound = true
+          bus.onPattern('chat.*', ([event, from, content]) => {
+            log(`[chat-namespace] ${event} ${from}: ${content}`)
+          })
+          bus.onPattern('user.*', ([event, name]) => {
+            log(`[user-namespace] ${event} ${name}`)
+          })
+          log('listeners bound for namespaces: chat.*, user.*')
+        },
+        async emitChat() {
+          await bus.emit('chat.message', ['Alice', 'hello namespace'])
+        },
+        async emitUser() {
+          await bus.emit('user.login', ['Bob'])
+        },
+        clear() {
+          output.textContent = ''
+        },
+      }
+
+      document.addEventListener('click', (e) => {
+        const action = e.target?.dataset?.action
+        if (action && actions[action]) void actions[action]()
+      })
+    </script>
+  </body>
+</html>

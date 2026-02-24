@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@zhiaiwan/event-bus - basic</title>
+    <link rel="stylesheet" href="../shared.css" />
+  </head>
+  <body>
+    <div class="page">
+      <div class="page-header">
+        <h1>EventBus 基础示例</h1>
+        <p>演示 <code>on</code> / <code>onPattern</code> / <code>once</code>（通过订阅选项）基础能力。</p>
+      </div>
+
+      <div class="card">
+        <h3>交互区</h3>
+        <div class="btn-group">
+          <button data-action="bind" class="btn">绑定监听器</button>
+          <button data-action="emit-login" class="btn btn-success">触发 login</button>
+          <button data-action="emit-message" class="btn">触发 message</button>
+          <button data-action="clear" class="btn">清空日志</button>
+        </div>
+        <div id="output" class="output mono"></div>
+      </div>
+    </div>
+
+    <script type="importmap">
+      { "imports": { "@zhiaiwan/event-bus": "../../dist/index.js" } }
+    </script>
+    <script type="module">
+      import { createEventBus } from '@zhiaiwan/event-bus'
+
+      const output = document.getElementById('output')
+      const log = (line) => {
+        output.textContent += `${line}\n`
+      }
+
+      const bus = createEventBus({ debug: false })
+      let bound = false
+
+      const actions = {
+        bind() {
+          if (bound) {
+            log('already bound')
+            return
+          }
+          bound = true
+          bus.on('user.login', ([name]) => log(`on user.login -> ${name}`))
+          bus.on('chat.message', ([from, content]) => log(`once chat.message -> ${from}: ${content}`), {
+            once: true,
+          })
+          bus.onPattern('**', ([event, ...args]) =>
+            log(`onPattern("**") ${event} -> ${JSON.stringify(args)}`),
+          )
+          log('listeners bound')
+        },
+        'emit-login'() {
+          void bus.emit('user.login', ['Alice'])
+        },
+        'emit-message'() {
+          void bus.emit('chat.message', ['Bob', 'Hello EventBus'])
+        },
+        clear() {
+          output.textContent = ''
+        },
+      }
+
+      document.addEventListener('click', (e) => {
+        const action = e.target?.dataset?.action
+        if (action && actions[action]) actions[action]()
+      })
+    </script>
+  </body>
+</html>

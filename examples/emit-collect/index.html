@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>emit-collect</title>
+    <link rel="stylesheet" href="../shared.css" />
+  </head>
+  <body>
+    <div class="page">
+      <div class="page-header">
+        <h1>聚合收集示例</h1>
+        <p>演示 <code>emitCollect</code> 的 <code>array / first / race / reduce</code> 聚合策略。</p>
+      </div>
+      <div class="card">
+        <div class="btn-group">
+          <button id="run" class="btn">运行</button>
+          <button id="clear" class="btn btn-success">清空输出</button>
+        </div>
+        <pre id="out" class="output"></pre>
+      </div>
+    </div>
+    <script type="importmap">
+      { "imports": { "@zhiaiwan/event-bus": "../../dist/index.js" } }
+    </script>
+    <script type="module">
+      import { createEventBus } from '@zhiaiwan/event-bus'
+
+      const out = document.getElementById('out')
+      const bus = createEventBus()
+      bus.on('math.add', async ([a, b]) => {
+        await new Promise((resolve) => setTimeout(resolve, 20))
+        return a + b
+      })
+      bus.on('math.add', async ([a, b]) => {
+        await new Promise((resolve) => setTimeout(resolve, 5))
+        return a + b + 1
+      })
+
+      document.getElementById('run').onclick = async () => {
+        const payload = [1, 2]
+        const array = await bus.emitCollect('math.add', payload)
+        const first = await bus.emitCollect('math.add', payload, { collect: { kind: 'first' } })
+        const race = await bus.emitCollect('math.add', payload, { collect: { kind: 'race' } })
+        const reduce = await bus.emitCollect('math.add', payload, {
+          collect: {
+            kind: 'reduce',
+            initial: 0,
+            reducer: (acc, cur) => acc + Number(cur ?? 0),
+          },
+        })
+        out.textContent = JSON.stringify({ array, first, race, reduce }, null, 2)
+      }
+
+      document.getElementById('clear').onclick = () => {
+        out.textContent = ''
+      }
+    </script>
+  </body>
+</html>

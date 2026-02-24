@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head><meta charset="UTF-8" /><title>replay-sticky</title><link rel="stylesheet" href="../shared.css" /></head>
+  <body>
+    <div class="page"><div class="page-header"><h1>Replay Sticky</h1></div><div class="card"><button id="run" class="btn">运行</button><pre id="out" class="output"></pre></div></div>
+    <script type="importmap">{ "imports": { "@zhiaiwan/event-bus": "../../dist/index.js" } }</script>
+    <script type="module">
+      import { createEventBus } from '@zhiaiwan/event-bus'
+      const out = document.getElementById('out')
+      const bus = createEventBus({ replay: { count: 3 }, sticky: { enabled: true } })
+      document.getElementById('run').onclick = async () => {
+        await bus.emit('state.update', ['A'])
+        await bus.emit('state.update', ['B'])
+        const list = []
+        bus.on('state.update', ([v]) => list.push(v), { replay: true })
+        out.textContent = JSON.stringify({ replay: bus.replayFor('state.update'), receivedOnSubscribe: list }, null, 2)
+      }
+    </script>
+  </body>
+</html>
