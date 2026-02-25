@@ -36,6 +36,7 @@
     "test": "vitest",
     "test:run": "vitest run",
     "test:coverage": "vitest run --coverage",
+    "test:node:smoke": "node scripts/node-smoke.mjs",
     "lint": "biome check ./src ./tests",
     "fix": "biome check --write --verbose ./src ./tests",
     "prepublishOnly": "pnpm run build && pnpm run test:run",

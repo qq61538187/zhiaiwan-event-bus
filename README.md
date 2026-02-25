@@ -41,7 +41,7 @@ bus.onPattern('order.*', ([event, orderId, amount]) => {
 await bus.emit('user.login', ['u1'])
 ```
 
-## 完整配置
+### 完整配置示例
 
 ```ts
 import {
@@ -220,7 +220,7 @@ const total = await bus.emitCollect('price.calc', [100], {
 
 销毁实例并释放 adapter 资源。
 
-## API 使用片段
+### API 使用片段
 
 ```ts
 // 分组取消
@@ -247,68 +247,71 @@ await bus.destroy()
 
 ### `EventBusOptions`
 
-| 选项 | 类型 | 默认值 | 说明 |
-|---|---|---|---|
-| `debug` | `boolean` | `false` | 是否输出调试日志 |
-| `middleware` | `Middleware[]` | `[]` | 中间件管线，按注册顺序执行 |
-| `replay` | `ReplayPolicy` | `undefined` | replay 缓存策略 |
-| `sticky` | `StickyPolicy` | `undefined` | sticky 缓存策略 |
-| `adapters` | `EventAdapter[]` | `[InMemoryAdapter]` | 传输适配器列表 |
-| `reporter` | `MetricsReporter` | `undefined` | 指标回调 |
+| 选项 | 类型 | 默认值 | 说明 | since | 是否弃用 | 替代项 |
+|---|---|---|---|---|---|---|
+| `debug` | `boolean` | `false` | 是否输出调试日志 | `1.0.0` | 否 | `-` |
+| `middleware` | `Middleware[]` | `[]` | 中间件管线，按注册顺序执行 | `1.0.0` | 否 | `-` |
+| `replay` | `ReplayPolicy` | `undefined` | replay 缓存策略 | `1.0.0` | 否 | `-` |
+| `sticky` | `StickyPolicy` | `undefined` | sticky 缓存策略 | `1.0.0` | 否 | `-` |
+| `adapters` | `EventAdapter[]` | `[InMemoryAdapter]` | 传输适配器列表 | `1.0.0` | 否 | `-` |
+| `reporter` | `MetricsReporter` | `undefined` | 指标回调 | `1.0.0` | 否 | `-` |
 
 `ReplayPolicy`：
 
-| 字段 | 类型 | 默认值 | 说明 |
-|---|---|---|---|
-| `count` | `number` | `undefined` | 每个事件最多保留的历史条数 |
-| `ttlMs` | `number` | `undefined` | replay 条目生存时间（毫秒） |
+| 字段 | 类型 | 默认值 | 说明 | since | 是否弃用 | 替代项 |
+|---|---|---|---|---|---|---|
+| `count` | `number` | `undefined` | 每个事件最多保留的历史条数 | `1.0.0` | 否 | `-` |
+| `ttlMs` | `number` | `undefined` | replay 条目生存时间（毫秒） | `1.0.0` | 否 | `-` |
 
 `StickyPolicy`：
 
-| 字段 | 类型 | 默认值 | 说明 |
-|---|---|---|---|
-| `enabled` | `boolean` | `false` | 是否启用 sticky（只保留最后一条） |
+| 字段 | 类型 | 默认值 | 说明 | since | 是否弃用 | 替代项 |
+|---|---|---|---|---|---|---|
+| `enabled` | `boolean` | `false` | 是否启用 sticky（只保留最后一条） | `1.0.0` | 否 | `-` |
 
 ### `SubscriptionOptions`
 
-| 选项 | 类型 | 默认值 | 说明 |
-|---|---|---|---|
-| `once` | `boolean` | `false` | 触发一次后自动移除 |
-| `priority` | `number` | `0` | 优先级（越大越先执行） |
-| `paused` | `boolean` | `false` | 初始是否暂停 |
-| `timeoutMs` | `number` | `undefined` | 单监听器超时（毫秒） |
-| `retry` | `number \| RetryConfig` | `undefined` | 重试策略 |
-| `concurrency` | `number` | `undefined` | 单监听器并发限制 |
-| `group` | `string` | `undefined` | 分组名（配合 `offGroup`） |
-| `tags` | `string[]` | `undefined` | 标签列表（配合 `unsubscribeByTag`） |
-| `replay` | `boolean` | `false` | 订阅时是否立即回放历史/粘性事件 |
+| 选项 | 类型 | 默认值 | 说明 | since | 是否弃用 | 替代项 |
+|---|---|---|---|---|---|---|
+| `once` | `boolean` | `false` | 触发一次后自动移除 | `1.0.0` | 否 | `-` |
+| `priority` | `number` | `0` | 优先级（越大越先执行） | `1.0.0` | 否 | `-` |
+| `paused` | `boolean` | `false` | 初始是否暂停 | `1.0.0` | 否 | `-` |
+| `timeoutMs` | `number` | `undefined` | 单监听器超时（毫秒） | `1.0.0` | 否 | `-` |
+| `retry` | `number \| RetryConfig` | `undefined` | 重试策略 | `1.0.0` | 否 | `-` |
+| `concurrency` | `number` | `undefined` | 单监听器并发限制 | `1.0.0` | 否 | `-` |
+| `group` | `string` | `undefined` | 分组名（配合 `offGroup`） | `1.0.0` | 否 | `-` |
+| `tags` | `string[]` | `undefined` | 标签列表（配合 `unsubscribeByTag`） | `1.0.0` | 否 | `-` |
+| `replay` | `boolean` | `false` | 订阅时是否立即回放历史/粘性事件 | `1.0.0` | 否 | `-` |
 
 `RetryConfig`：
 
-| 字段 | 类型 | 默认值 | 说明 |
-|---|---|---|---|
-| `times` | `number` | 必填 | 最大重试次数 |
-| `delayMs` | `number` | `0` | 首次重试延迟（毫秒） |
-| `backoff` | `'fixed' \| 'linear' \| 'exponential'` | `'fixed'` | 退避策略 |
+| 字段 | 类型 | 默认值 | 说明 | since | 是否弃用 | 替代项 |
+|---|---|---|---|---|---|---|
+| `times` | `number` | `0`（未设置 `profile` 时） | 最大重试次数 | `1.0.0` | 否 | `-` |
+| `delayMs` | `number` | `0` | 首次重试延迟（毫秒） | `1.0.0` | 否 | `-` |
+| `backoff` | `'fixed' \| 'linear' \| 'exponential'` | `'fixed'` | 退避策略 | `1.0.0` | 否 | `-` |
+| `jitterMs` | `number` | `0` | 重试抖动上限（在基础延迟上增加随机抖动） | `+1.0.0` | 否 | `-` |
+| `profile` | `'aggressive' \| 'balanced' \| 'conservative'` | `undefined` | 快速应用重试预设（可被显式字段覆盖） | `+1.0.0` | 否 | `-` |
+| `shouldRetry` | `(error, attempt) => boolean \| Promise<boolean>` | `undefined` | 动态决定是否继续重试 | `+1.0.0` | 否 | `-` |
 
 ### `EmitOptions`
 
-| 选项 | 类型 | 默认值 | 说明 |
-|---|---|---|---|
-| `signal` | `AbortSignal` | `undefined` | 中断本次发射 |
-| `timeoutMs` | `number` | `undefined` | 发射级超时（当前实现保留位） |
-| `collect` | `CollectStrategy` | `{ kind: 'array' }` | `emitCollect` 聚合策略 |
-| `trace` | `TraceContext` | `undefined` | 链路追踪信息 |
-| `meta` | `Omit<EventMeta, 'timestamp'>` | `undefined` | 附加元信息（`timestamp` 自动注入） |
+| 选项 | 类型 | 默认值 | 说明 | since | 是否弃用 | 替代项 |
+|---|---|---|---|---|---|---|
+| `signal` | `AbortSignal` | `undefined` | 中断本次发射 | `1.0.0` | 否 | `-` |
+| `timeoutMs` | `number` | `undefined` | 监听器超时默认值（当监听器未单独设置 `SubscriptionOptions.timeoutMs` 时生效） | `1.0.0` | 否 | `-` |
+| `collect` | `CollectStrategy` | `{ kind: 'array' }` | `emitCollect` 聚合策略 | `1.0.0` | 否 | `-` |
+| `trace` | `TraceContext` | `undefined` | 链路追踪信息 | `1.0.0` | 否 | `-` |
+| `meta` | `Omit<EventMeta, 'timestamp'>` | `undefined` | 附加元信息（`timestamp` 自动注入） | `1.0.0` | 否 | `-` |
 
 `CollectStrategy`：
 
-| 选项 | 说明 |
-|---|---|
-| `{ kind: 'array' }` | 返回所有监听器结果数组 |
-| `{ kind: 'first' }` | 返回首个结果 |
-| `{ kind: 'race' }` | 返回最快结果 |
-| `{ kind: 'reduce', initial, reducer }` | 通过 reducer 聚合结果 |
+| 选项 | 说明 | since | 是否弃用 | 替代项 |
+|---|---|---|---|---|
+| `{ kind: 'array' }` | 返回所有监听器结果数组 | `1.0.0` | 否 | `-` |
+| `{ kind: 'first' }` | 返回首个结果 | `1.0.0` | 否 | `-` |
+| `{ kind: 'race' }` | 返回最快结果 | `1.0.0` | 否 | `-` |
+| `{ kind: 'reduce', initial, reducer }` | 通过 reducer 聚合结果 | `1.0.0` | 否 | `-` |
 
 ## 导出一览
 
@@ -328,6 +331,7 @@ await bus.destroy()
 
 - `isPatternMatch`
 - `patternToRegExp`
+- `isRetriableNetworkError`
 
 ### 类型导出
 
@@ -377,7 +381,7 @@ pnpm run examples
 | `pattern-utils` | 工具函数 | `isPatternMatch` / `patternToRegExp` |
 | `emit-collect` | 聚合结果 | `array` / `first` / `race` / `reduce` |
 | `replay-sticky` | 历史回放 | replay + sticky |
-| `policies` | 执行策略 | timeout / retry / cancel / concurrency |
+| `policies` | 执行策略 | timeout / retry / cancel / concurrency / shouldRetry / profile |
 | `adapters-browser` | 浏览器多实例通信 | InMemory + BroadcastChannel + WebWorker |
 | `adapters-node-worker` | Node 多线程通信 | worker_threads 适配器交互验证 + Node 脚本执行 |
 | `observability` | 可观测性 | middleware + metrics + trace/reporter |
@@ -394,7 +398,7 @@ pnpm run examples
 |---|---|---|---|
 | 基础订阅发布 | `on` / `emit` / `once` | `basic` | `tests/event-bus.test.ts` |
 | 模式订阅与匹配 | `onPattern` / `isPatternMatch` / `patternToRegExp` | `pattern-matching` + `pattern-utils` | `tests/event-bus.test.ts` + `tests/pattern-matcher.test.ts` |
-| 聚合策略 | `emitCollect` (`array/first/reduce`) | `emit-collect` | `tests/event-bus.test.ts` |
+| 聚合策略 | `emitCollect` (`array/first/race/reduce`) | `emit-collect` | `tests/event-bus.test.ts` |
 | 历史与粘性事件 | `replay` / `sticky` / `replayFor` | `replay-sticky` | `tests/event-bus.test.ts` |
 | 执行控制 | `timeoutMs` / `retry` / `concurrency` / `signal` | `policies` | `tests/event-bus.test.ts` + `tests/policies.test.ts` |
 | 生命周期管理 | `pause` / `resume` / `offGroup` / `unsubscribeByTag` / `destroy` | `lifecycle` | `tests/event-bus.test.ts` |
@@ -449,6 +453,10 @@ pnpm run examples
 
 - 用 `timeoutMs` 限制单监听器最大执行时长
 - 用 `retry` 设置失败重试（固定/线性/指数退避）
+- 用 `profile` 快速应用重试预设，再按需覆盖单个字段
+- 用 `jitterMs` 打散重试时间，降低突发并发重试导致的雪崩风险
+- 用 `shouldRetry(error, attempt)` 按错误类型动态中止无意义重试
+- 可结合 `isRetriableNetworkError(error)` 复用网络错误重试判断逻辑
 - 用 `concurrency` 限制单监听器并发度，防止被突发事件压垮
 
 ### 6）如何做运行时排查？
@@ -464,7 +472,10 @@ pnpm run examples
 pnpm run lint
 pnpm run typecheck
 pnpm run test:run
+pnpm run test:coverage
 pnpm run build
+pnpm run test:node:smoke
+pnpm run examples
 ```
 
 ## 技术栈

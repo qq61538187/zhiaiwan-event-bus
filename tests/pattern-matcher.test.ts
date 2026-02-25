@@ -28,4 +28,19 @@ describe('pattern matcher', () => {
     expect(re.test('order.web.created')).toBe(true)
     expect(re.test('order.web.mobile.created')).toBe(false)
   })
+
+  it('reuses cached regexp for same pattern', () => {
+    const first = patternToRegExp('user.*')
+    const second = patternToRegExp('user.*')
+    expect(first).toBe(second)
+  })
+
+  it('evicts old cache entries when cache limit exceeded', () => {
+    const first = patternToRegExp('cache.0.*')
+    for (let i = 1; i <= 520; i += 1) {
+      patternToRegExp(`cache.${i}.*`)
+    }
+    const again = patternToRegExp('cache.0.*')
+    expect(again).not.toBe(first)
+  })
 })

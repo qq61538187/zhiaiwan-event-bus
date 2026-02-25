@@ -18,13 +18,19 @@ pnpm examples
 | [pattern-utils](./pattern-utils/) | 工具函数：`isPatternMatch` / `patternToRegExp` |
 | [emit-collect](./emit-collect/) | `emitCollect` 聚合策略（array/first/race/reduce） |
 | [replay-sticky](./replay-sticky/) | replay 与 sticky 事件回放 |
-| [policies](./policies/) | timeout/retry/cancel/concurrency 策略 |
+| [policies](./policies/) | timeout/retry/cancel/concurrency/shouldRetry/profile 策略 |
 | [adapters-browser](./adapters-browser/) | InMemory + BroadcastChannel + WebWorker 适配器 |
 | [adapters-node-worker](./adapters-node-worker/) | Node worker_threads 适配器交互验证（调用 Node 脚本） |
-| [observability](./observability/) | middleware + metrics + trace/reporter |
+| [observability](./observability/) | middleware + metrics + trace/reporter + `next()` 误用排查 |
 | [async](./async/) | 异步监听器执行与 emit 等待行为 |
 | [error](./error/) | 监听器异常上报（`reporter.onError`） |
 | [priority-context](./priority-context/) | 监听器优先级与 HandlerContext 信息 |
 | [namespace](./namespace/) | dot 风格事件命名空间组织 |
 | [lifecycle](./lifecycle/) | pause/resume/offGroup/unsubscribeByTag/destroy |
 | [introspection](./introspection/) | eventNames/listenerCount/replayFor/metrics 运行时观测 |
+
+## 示例验收建议
+
+- 修改 API 或策略后，至少回归 `basic` / `policies` / `observability` 三个示例。
+- 涉及 adapter 变更时，补跑 `adapters-browser` 与 `adapters-node-worker`。
+- 若中间件链路改动，建议执行 `observability` 的 `next()` 误用按钮做兜底排查。

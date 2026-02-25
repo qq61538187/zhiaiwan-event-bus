@@ -1,22 +1,149 @@
 <!doctype html>
 <html lang="zh-CN">
-  <head><meta charset="UTF-8" /><title>observability</title><link rel="stylesheet" href="../shared.css" /></head>
+  <head>
+    <meta charset="UTF-8" />
+    <title>observability</title>
+    <link rel="stylesheet" href="../shared.css" />
+  </head>
   <body>
-    <div class="page"><div class="page-header"><h1>Observability</h1></div><div class="card"><button id="run" class="btn">运行</button><pre id="out" class="output"></pre></div></div>
-    <script type="importmap">{ "imports": { "@zhiaiwan/event-bus": "../../dist/index.js" } }</script>
+    <div class="page">
+      <div class="page-header">
+        <h1>Observability</h1>
+        <p>演示 <code>middleware</code> / <code>reporter</code> / <code>trace</code> / <code>meta</code>。</p>
+      </div>
+      <div class="card">
+        <div class="btn-group">
+          <button data-action="run-success" class="btn">成功链路</button>
+          <button data-action="run-error" class="btn btn-danger">异常链路</button>
+          <button data-action="run-next-misuse" class="btn">next() 误用</button>
+          <button data-action="clear" class="btn">清空</button>
+        </div>
+        <pre id="out" class="output"></pre>
+      </div>
+    </div>
+    <script type="importmap">
+      { "imports": { "@zhiaiwan/event-bus": "../../dist/index.js" } }
+    </script>
     <script type="module">
       import { createEventBus } from '@zhiaiwan/event-bus'
+
       const out = document.getElementById('out')
-      const reporter = { onEmit: () => {}, onHandled: () => {}, onError: () => {} }
-      const bus = createEventBus({
-        reporter,
-        middleware: [(ctx, next) => { ctx.meta.source = 'example'; return next() }],
-      })
-      bus.on('trace.demo', ([msg]) => msg.toUpperCase())
-      document.getElementById('run').onclick = async () => {
-        await bus.emit('trace.demo', ['hello'], { trace: { traceId: 't-1', spanId: 's-1' } })
-        out.textContent = JSON.stringify(bus.metrics(), null, 2)
+      const reportLogs = []
+      const log = (value) => {
+        out.textContent += `${value}\n`
       }
+
+      const bus = createEventBus({
+        reporter: {
+          onEmit: (event) => reportLogs.push({ type: 'emit', event }),
+          onHandled: (event, durationMs) => reportLogs.push({ type: 'handled', event, durationMs }),
+          onError: (event, error) =>
+            reportLogs.push({
+              type: 'error',
+              event,
+              message: error instanceof Error ? error.message : String(error),
+            }),
+        },
+        middleware: [
+          async (ctx, next) => {
+            ctx.meta.source = 'examples/observability'
+            ctx.meta.tags = [...(ctx.meta.tags ?? []), 'observability-demo']
+            await next()
+          },
+        ],
+      })
+
+      bus.on('trace.success', ([msg], ctx) => {
+        return `${msg.toUpperCase()}@${ctx.meta.source ?? 'unknown'}`
+      })
+      bus.on('trace.error', async () => {
+        throw new Error('intentional reporter error')
+      })
+
+      const actions = {
+        async runSuccess() {
+          reportLogs.length = 0
+          const result = await bus.emitCollect('trace.success', ['hello'], {
+            trace: { traceId: 't-success', spanId: 's-1' },
+            meta: { source: 'ui-click', tags: ['success-path'] },
+            collect: { kind: 'first' },
+          })
+          log(
+            JSON.stringify(
+              {
+                case: 'success',
+                result,
+                reporter: reportLogs,
+                metrics: bus.metrics(),
+              },
+              null,
+              2,
+            ),
+          )
+        },
+        async runError() {
+          reportLogs.length = 0
+          try {
+            await bus.emit('trace.error', [], {
+              trace: { traceId: 't-error', spanId: 's-2' },
+              meta: { source: 'ui-click', tags: ['error-path'] },
+            })
+          } catch (error) {
+            log(
+              JSON.stringify(
+                {
+                  case: 'error',
+                  message: error instanceof Error ? error.message : String(error),
+                  reporter: reportLogs,
+                  metrics: bus.metrics(),
+                },
+                null,
+                2,
+              ),
+            )
+          }
+        },
+        async runNextMisuse() {
+          const badBus = createEventBus({
+            middleware: [
+              async (_ctx, next) => {
+                await next()
+                await next()
+              },
+            ],
+          })
+          try {
+            await badBus.emit('trace.success', ['x'])
+          } catch (error) {
+            log(
+              JSON.stringify(
+                {
+                  case: 'next-misuse',
+                  message: error instanceof Error ? error.message : String(error),
+                },
+                null,
+                2,
+              ),
+            )
+          } finally {
+            await badBus.destroy()
+          }
+        },
+        clear() {
+          out.textContent = ''
+        },
+      }
+
+      document.addEventListener('click', (event) => {
+        const target = event.target
+        if (!(target instanceof HTMLElement)) return
+        const action = target.dataset.action
+        if (!action) return
+        const key = action.replace(/-([a-z])/g, (_, c) => c.toUpperCase())
+        if (key in actions) {
+          void actions[key]()
+        }
+      })
     </script>
   </body>
 </html>

@@ -50,9 +50,12 @@ export type Middleware<Events extends EventMap = EventMap> = <K extends EventKey
 ) => Promise<void> | void
 
 export type RetryConfig = {
-  times: number
+  times?: number
   delayMs?: number
   backoff?: 'fixed' | 'linear' | 'exponential'
+  jitterMs?: number
+  profile?: 'aggressive' | 'balanced' | 'conservative'
+  shouldRetry?: (error: unknown, attempt: number) => boolean | Promise<boolean>
 }
 
 export type CollectStrategy<T = unknown, R = unknown> =

@@ -41,7 +41,7 @@ bus.onPattern('order.*', ([event, orderId, amount]) => {
 await bus.emit('user.login', ['u1'])
 ```
 
-## Full Configuration
+### Full Configuration Example
 
 ```ts
 import {
@@ -220,7 +220,7 @@ Returns metrics snapshot: `emitCount` / `handledCount` / `failedCount` / `droppe
 
 Destroys the instance and disposes adapter resources.
 
-## API Snippets
+### API Snippets
 
 ```ts
 // group unsubscribe
@@ -247,68 +247,71 @@ await bus.destroy()
 
 ### `EventBusOptions`
 
-| Option | Type | Default | Description |
-|---|---|---|---|
-| `debug` | `boolean` | `false` | Enable debug logging |
-| `middleware` | `Middleware[]` | `[]` | Middleware pipeline in registration order |
-| `replay` | `ReplayPolicy` | `undefined` | Replay cache policy |
-| `sticky` | `StickyPolicy` | `undefined` | Sticky cache policy |
-| `adapters` | `EventAdapter[]` | `[InMemoryAdapter]` | Transport adapters |
-| `reporter` | `MetricsReporter` | `undefined` | Metrics callbacks |
+| Option | Type | Default | Description | Since | Deprecated | Replacement |
+|---|---|---|---|---|---|---|
+| `debug` | `boolean` | `false` | Enable debug logging | `1.0.0` | `No` | `-` |
+| `middleware` | `Middleware[]` | `[]` | Middleware pipeline in registration order | `1.0.0` | `No` | `-` |
+| `replay` | `ReplayPolicy` | `undefined` | Replay cache policy | `1.0.0` | `No` | `-` |
+| `sticky` | `StickyPolicy` | `undefined` | Sticky cache policy | `1.0.0` | `No` | `-` |
+| `adapters` | `EventAdapter[]` | `[InMemoryAdapter]` | Transport adapters | `1.0.0` | `No` | `-` |
+| `reporter` | `MetricsReporter` | `undefined` | Metrics callbacks | `1.0.0` | `No` | `-` |
 
 `ReplayPolicy`:
 
-| Field | Type | Default | Description |
-|---|---|---|---|
-| `count` | `number` | `undefined` | Max history entries per event |
-| `ttlMs` | `number` | `undefined` | Replay entry TTL in milliseconds |
+| Field | Type | Default | Description | Since | Deprecated | Replacement |
+|---|---|---|---|---|---|---|
+| `count` | `number` | `undefined` | Max history entries per event | `1.0.0` | `No` | `-` |
+| `ttlMs` | `number` | `undefined` | Replay entry TTL in milliseconds | `1.0.0` | `No` | `-` |
 
 `StickyPolicy`:
 
-| Field | Type | Default | Description |
-|---|---|---|---|
-| `enabled` | `boolean` | `false` | Enable sticky mode (keep latest entry only) |
+| Field | Type | Default | Description | Since | Deprecated | Replacement |
+|---|---|---|---|---|---|---|
+| `enabled` | `boolean` | `false` | Enable sticky mode (keep latest entry only) | `1.0.0` | `No` | `-` |
 
 ### `SubscriptionOptions`
 
-| Option | Type | Default | Description |
-|---|---|---|---|
-| `once` | `boolean` | `false` | Auto remove after first trigger |
-| `priority` | `number` | `0` | Priority (higher runs first) |
-| `paused` | `boolean` | `false` | Initial paused state |
-| `timeoutMs` | `number` | `undefined` | Per-listener timeout in milliseconds |
-| `retry` | `number \| RetryConfig` | `undefined` | Retry policy |
-| `concurrency` | `number` | `undefined` | Per-listener concurrency limit |
-| `group` | `string` | `undefined` | Group key (for `offGroup`) |
-| `tags` | `string[]` | `undefined` | Tag list (for `unsubscribeByTag`) |
-| `replay` | `boolean` | `false` | Replay cached/sticky events on subscribe |
+| Option | Type | Default | Description | Since | Deprecated | Replacement |
+|---|---|---|---|---|---|---|
+| `once` | `boolean` | `false` | Auto remove after first trigger | `1.0.0` | `No` | `-` |
+| `priority` | `number` | `0` | Priority (higher runs first) | `1.0.0` | `No` | `-` |
+| `paused` | `boolean` | `false` | Initial paused state | `1.0.0` | `No` | `-` |
+| `timeoutMs` | `number` | `undefined` | Per-listener timeout in milliseconds | `1.0.0` | `No` | `-` |
+| `retry` | `number \| RetryConfig` | `undefined` | Retry policy | `1.0.0` | `No` | `-` |
+| `concurrency` | `number` | `undefined` | Per-listener concurrency limit | `1.0.0` | `No` | `-` |
+| `group` | `string` | `undefined` | Group key (for `offGroup`) | `1.0.0` | `No` | `-` |
+| `tags` | `string[]` | `undefined` | Tag list (for `unsubscribeByTag`) | `1.0.0` | `No` | `-` |
+| `replay` | `boolean` | `false` | Replay cached/sticky events on subscribe | `1.0.0` | `No` | `-` |
 
 `RetryConfig`:
 
-| Field | Type | Default | Description |
-|---|---|---|---|
-| `times` | `number` | required | Max retry attempts |
-| `delayMs` | `number` | `0` | Initial retry delay in milliseconds |
-| `backoff` | `'fixed' \| 'linear' \| 'exponential'` | `'fixed'` | Backoff strategy |
+| Field | Type | Default | Description | Since | Deprecated | Replacement |
+|---|---|---|---|---|---|---|
+| `times` | `number` | `0` (when no `profile` is specified) | Max retry attempts | `1.0.0` | `No` | `-` |
+| `delayMs` | `number` | `0` | Initial retry delay in milliseconds | `1.0.0` | `No` | `-` |
+| `backoff` | `'fixed' \| 'linear' \| 'exponential'` | `'fixed'` | Backoff strategy | `1.0.0` | `No` | `-` |
+| `jitterMs` | `number` | `0` | Max jitter added on top of base retry delay | `+1.0.0` | `No` | `-` |
+| `profile` | `'aggressive' \| 'balanced' \| 'conservative'` | `undefined` | Preset retry template (can be overridden by explicit fields) | `+1.0.0` | `No` | `-` |
+| `shouldRetry` | `(error, attempt) => boolean \| Promise<boolean>` | `undefined` | Dynamic gate to continue or stop retries | `+1.0.0` | `No` | `-` |
 
 ### `EmitOptions`
 
-| Option | Type | Default | Description |
-|---|---|---|---|
-| `signal` | `AbortSignal` | `undefined` | Abort current emit |
-| `timeoutMs` | `number` | `undefined` | Emit-level timeout (reserved in current implementation) |
-| `collect` | `CollectStrategy` | `{ kind: 'array' }` | Aggregation strategy for `emitCollect` |
-| `trace` | `TraceContext` | `undefined` | Distributed trace metadata |
-| `meta` | `Omit<EventMeta, 'timestamp'>` | `undefined` | Extra metadata (`timestamp` is injected automatically) |
+| Option | Type | Default | Description | Since | Deprecated | Replacement |
+|---|---|---|---|---|---|---|
+| `signal` | `AbortSignal` | `undefined` | Abort current emit | `1.0.0` | `No` | `-` |
+| `timeoutMs` | `number` | `undefined` | Default listener timeout (used when `SubscriptionOptions.timeoutMs` is not set) | `1.0.0` | `No` | `-` |
+| `collect` | `CollectStrategy` | `{ kind: 'array' }` | Aggregation strategy for `emitCollect` | `1.0.0` | `No` | `-` |
+| `trace` | `TraceContext` | `undefined` | Distributed trace metadata | `1.0.0` | `No` | `-` |
+| `meta` | `Omit<EventMeta, 'timestamp'>` | `undefined` | Extra metadata (`timestamp` is injected automatically) | `1.0.0` | `No` | `-` |
 
 `CollectStrategy`:
 
-| Option | Description |
-|---|---|
-| `{ kind: 'array' }` | Return all listener values as array |
-| `{ kind: 'first' }` | Return first value |
-| `{ kind: 'race' }` | Return fastest value |
-| `{ kind: 'reduce', initial, reducer }` | Aggregate values with reducer |
+| Option | Description | Since | Deprecated | Replacement |
+|---|---|---|---|---|
+| `{ kind: 'array' }` | Return all listener values as array | `1.0.0` | `No` | `-` |
+| `{ kind: 'first' }` | Return first value | `1.0.0` | `No` | `-` |
+| `{ kind: 'race' }` | Return fastest value | `1.0.0` | `No` | `-` |
+| `{ kind: 'reduce', initial, reducer }` | Aggregate values with reducer | `1.0.0` | `No` | `-` |
 
 ## Exports
 
@@ -328,6 +331,7 @@ await bus.destroy()
 
 - `isPatternMatch`
 - `patternToRegExp`
+- `isRetriableNetworkError`
 
 ### Type Exports
 
@@ -377,7 +381,7 @@ Open `http://localhost:3000` to view:
 | `pattern-utils` | Utility functions | `isPatternMatch` / `patternToRegExp` |
 | `emit-collect` | Result aggregation | `array` / `first` / `race` / `reduce` |
 | `replay-sticky` | Event replay | replay + sticky |
-| `policies` | Execution policies | timeout / retry / cancel / concurrency |
+| `policies` | Execution policies | timeout / retry / cancel / concurrency / shouldRetry / profile |
 | `adapters-browser` | Browser multi-instance messaging | InMemory + BroadcastChannel + WebWorker |
 | `adapters-node-worker` | Node multi-thread messaging | interactive worker_threads adapter validation + Node script execution |
 | `observability` | Observability | middleware + metrics + trace/reporter |
@@ -394,7 +398,7 @@ Open `http://localhost:3000` to view:
 |---|---|---|---|
 | Basic subscribe/emit | `on` / `emit` / `once` | `basic` | `tests/event-bus.test.ts` |
 | Pattern subscribe/match | `onPattern` / `isPatternMatch` / `patternToRegExp` | `pattern-matching` + `pattern-utils` | `tests/event-bus.test.ts` + `tests/pattern-matcher.test.ts` |
-| Collect strategies | `emitCollect` (`array/first/reduce`) | `emit-collect` | `tests/event-bus.test.ts` |
+| Collect strategies | `emitCollect` (`array/first/race/reduce`) | `emit-collect` | `tests/event-bus.test.ts` |
 | Replay/sticky | `replay` / `sticky` / `replayFor` | `replay-sticky` | `tests/event-bus.test.ts` |
 | Execution control | `timeoutMs` / `retry` / `concurrency` / `signal` | `policies` | `tests/event-bus.test.ts` + `tests/policies.test.ts` |
 | Lifecycle management | `pause` / `resume` / `offGroup` / `unsubscribeByTag` / `destroy` | `lifecycle` | `tests/event-bus.test.ts` |
@@ -449,6 +453,10 @@ Open `http://localhost:3000` to view:
 
 - Use `timeoutMs` to cap single-listener execution time.
 - Use `retry` for failure retries (fixed/linear/exponential backoff).
+- Use `profile` to apply retry presets quickly, then override fields as needed.
+- Use `jitterMs` to spread retry timing and reduce retry storms.
+- Use `shouldRetry(error, attempt)` to stop retries for non-retriable errors.
+- Use `isRetriableNetworkError(error)` as a reusable network retry classifier.
 - Use `concurrency` to limit per-listener parallelism under burst traffic.
 
 ### 6) How do I troubleshoot runtime behavior?
@@ -464,7 +472,10 @@ Open `http://localhost:3000` to view:
 pnpm run lint
 pnpm run typecheck
 pnpm run test:run
+pnpm run test:coverage
 pnpm run build
+pnpm run test:node:smoke
+pnpm run examples
 ```
 
 ## Tech Stack

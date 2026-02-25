@@ -1,9 +1,11 @@
 import { InMemoryAdapter } from './adapters'
+import { isPatternMatch } from './matcher'
 import { withRetry, withTimeout } from './policy'
 import { ReplayStickyStore } from './replay-sticky'
 import { MetricsState } from './reporter'
 import { ListenerStore } from './store'
 import type {
+  AdapterEnvelope,
   CollectResult,
   CollectStrategy,
   EmitContext,
@@ -58,7 +60,10 @@ export class EventBus<Events extends EventMap> implements EventBusInstance<Event
   private readonly metricsState: MetricsState
   private readonly middleware: Middleware<Events>[]
   private readonly adapters: EventAdapter<Events>[]
+  private readonly adapterReady: Promise<void>
   private readonly debug: boolean
+  private lifecycleState: 'active' | 'destroying' | 'destroyed' = 'active'
+  private destroyPromise?: Promise<void>
 
   constructor(options: EventBusOptions<Events> = {}) {
     this.middleware = options.middleware ?? []
@@ -66,21 +71,7 @@ export class EventBus<Events extends EventMap> implements EventBusInstance<Event
     this.replaySticky = new ReplayStickyStore(options.replay, options.sticky)
     this.metricsState = new MetricsState(options.reporter)
     this.adapters = options.adapters?.length ? options.adapters : [new InMemoryAdapter<Events>()]
-    for (const adapter of this.adapters) {
-      void adapter.start(async (envelope) => {
-        // Re-delivered adapter events should not be published again,
-        // otherwise cross-runtime adapters can form an infinite relay loop.
-        await this.emitInternal(
-          envelope.event as EventKey<Events>,
-          envelope.payload as Events[EventKey<Events>],
-          {
-            meta: envelope.meta,
-            trace: envelope.trace,
-          },
-          true,
-        )
-      })
-    }
+    this.adapterReady = this.startAdapters()
   }
 
   on<K extends EventKey<Events>>(
@@ -88,6 +79,8 @@ export class EventBus<Events extends EventMap> implements EventBusInstance<Event
     handler: EventHandler<Events, K, unknown>,
     options?: SubscriptionOptions,
   ): Unsubscribe {
+    this.ensureActive()
+    this.ensureNonEmptyText(event, 'event')
     const entry: ListenerEntry<Events> = {
       id: uid(),
       pattern: event,
@@ -100,10 +93,8 @@ export class EventBus<Events extends EventMap> implements EventBusInstance<Event
     }
     this.store.add(entry)
     if (options?.replay) {
-      const replayEvents = this.replaySticky.replayFor(event)
-      const sticky = this.replaySticky.stickyFor(event)
-      const firstPayload = sticky ? [sticky] : replayEvents
-      for (const payload of firstPayload) {
+      const replayEvents = this.replaySticky.replayWithStickyFor(event)
+      for (const payload of replayEvents) {
         void this.invokeEntry(entry, event, payload, makeMeta(), undefined)
       }
     }
@@ -115,6 +106,8 @@ export class EventBus<Events extends EventMap> implements EventBusInstance<Event
     handler: PatternHandler<Events, unknown>,
     options?: SubscriptionOptions,
   ): Unsubscribe {
+    this.ensureActive()
+    this.ensureNonEmptyText(pattern, 'pattern')
     const entry: ListenerEntry<Events> = {
       id: uid(),
       pattern,
@@ -126,6 +119,20 @@ export class EventBus<Events extends EventMap> implements EventBusInstance<Event
       isPattern: true,
     }
     this.store.add(entry)
+    if (options?.replay) {
+      const replayEvents = this.replaySticky.replayWithStickyByPattern((eventName) =>
+        isPatternMatch(pattern, eventName),
+      )
+      for (const item of replayEvents) {
+        void this.invokeEntry(
+          entry,
+          item.event as EventKey<Events>,
+          item.payload as Events[EventKey<Events>],
+          makeMeta(),
+          undefined,
+        )
+      }
+    }
     return () => this.store.remove(entry.id)
   }
 
@@ -134,6 +141,9 @@ export class EventBus<Events extends EventMap> implements EventBusInstance<Event
     payload: Events[K],
     options?: EmitOptions,
   ): Promise<boolean> {
+    this.ensureActive()
+    this.ensureNonEmptyText(event, 'event')
+    this.ensurePayloadArray(payload)
     const results = await this.emitInternal(event, payload, options)
     return results.matched > 0
   }
@@ -143,6 +153,9 @@ export class EventBus<Events extends EventMap> implements EventBusInstance<Event
     payload: Events[K],
     options?: EmitOptions,
   ): Promise<CollectResult> {
+    this.ensureActive()
+    this.ensureNonEmptyText(event, 'event')
+    this.ensurePayloadArray(payload)
     const strategy = options?.collect ?? DEFAULT_COLLECT
     if (strategy.kind === 'race') {
       return await this.emitInternalRace(event, payload, options)
@@ -160,41 +173,75 @@ export class EventBus<Events extends EventMap> implements EventBusInstance<Event
   }
 
   offGroup(group: string): void {
+    this.ensureActive()
     this.store.removeByGroup(group)
   }
 
   pause(pattern: Pattern): void {
+    this.ensureActive()
+    this.ensureNonEmptyText(pattern, 'pattern')
     this.store.pause(pattern)
   }
 
   resume(pattern: Pattern): void {
+    this.ensureActive()
+    this.ensureNonEmptyText(pattern, 'pattern')
     this.store.resume(pattern)
   }
 
   unsubscribeByTag(tag: string): void {
+    this.ensureActive()
     this.store.removeByTag(tag)
   }
 
   eventNames(): string[] {
+    this.ensureActive()
     return this.store.patterns()
   }
 
   listenerCount(pattern?: Pattern): number {
+    this.ensureActive()
+    if (pattern !== undefined) {
+      this.ensureNonEmptyText(pattern, 'pattern')
+    }
     return this.store.count(pattern)
   }
 
   replayFor<K extends EventKey<Events>>(event: K): Array<Events[K]> {
+    this.ensureActive()
+    this.ensureNonEmptyText(event, 'event')
     return this.replaySticky.replayFor(event)
   }
 
   metrics() {
+    this.ensureActive()
     return this.metricsState.snapshot()
   }
 
   async destroy(): Promise<void> {
-    this.store.clear()
-    for (const adapter of this.adapters) {
-      await adapter.stop()
+    if (this.lifecycleState === 'destroyed') return
+    if (this.lifecycleState === 'destroying') {
+      await this.destroyPromise
+      return
+    }
+
+    this.lifecycleState = 'destroying'
+    this.destroyPromise = (async () => {
+      try {
+        await this.adapterReady
+      } catch {
+        // allow best-effort stop even when adapter startup failed
+      }
+      this.store.clear()
+      for (const adapter of this.adapters) {
+        await adapter.stop()
+      }
+    })()
+
+    try {
+      await this.destroyPromise
+    } finally {
+      this.lifecycleState = 'destroyed'
     }
   }
 
@@ -204,6 +251,9 @@ export class EventBus<Events extends EventMap> implements EventBusInstance<Event
     options?: EmitOptions,
     suppressPublish = false,
   ): Promise<{ matched: number; values: unknown[] }> {
+    if (!suppressPublish) {
+      await this.adapterReady
+    }
     const meta = makeMeta(options)
     this.replaySticky.push(event, payload)
     const matches = this.store.match(event)
@@ -247,6 +297,7 @@ export class EventBus<Events extends EventMap> implements EventBusInstance<Event
     payload: Events[K],
     options?: EmitOptions,
   ): Promise<CollectResult> {
+    await this.adapterReady
     const meta = makeMeta(options)
     this.replaySticky.push(event, payload)
     const matches = this.store.match(event)
@@ -310,6 +361,87 @@ export class EventBus<Events extends EventMap> implements EventBusInstance<Event
         await adapter.publish(envelope)
       }
     }
+  }
+
+  private async startAdapters(): Promise<void> {
+    for (const adapter of this.adapters) {
+      try {
+        await adapter.start(async (envelope) => {
+          if (!this.isValidEnvelope(envelope)) {
+            if (this.debug) {
+              console.error('[EventBus] invalid adapter envelope ignored', adapter.name, envelope)
+            }
+            return
+          }
+          // Re-delivered adapter events should not be published again,
+          // otherwise cross-runtime adapters can form an infinite relay loop.
+          await this.emitInternal(
+            envelope.event as EventKey<Events>,
+            envelope.payload as Events[EventKey<Events>],
+            {
+              meta: envelope.meta,
+              trace: envelope.trace,
+            },
+            true,
+          )
+        })
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error)
+        throw new Error(`[EventBus] adapter "${adapter.name}" failed to start: ${message}`)
+      }
+    }
+  }
+
+  private ensureActive(): void {
+    if (this.lifecycleState === 'active') return
+    throw new Error(`[EventBus] instance already ${this.lifecycleState}`)
+  }
+
+  private ensureNonEmptyText(value: string, field: string): void {
+    if (typeof value !== 'string' || value.trim().length === 0) {
+      throw new TypeError(`[EventBus] ${field} must be a non-empty string`)
+    }
+  }
+
+  private ensurePayloadArray(payload: unknown): void {
+    if (!Array.isArray(payload)) {
+      throw new TypeError('[EventBus] payload must be an array')
+    }
+  }
+
+  private isValidEnvelope(envelope: unknown): envelope is AdapterEnvelope<Events> {
+    if (!envelope || typeof envelope !== 'object') return false
+    const candidate = envelope as Partial<AdapterEnvelope<Events>>
+    return (
+      candidate.type === 'emit' &&
+      typeof candidate.event === 'string' &&
+      candidate.event.trim().length > 0 &&
+      Array.isArray(candidate.payload) &&
+      this.isValidMeta(candidate.meta) &&
+      this.isValidTrace(candidate.trace)
+    )
+  }
+
+  private isValidMeta(meta: unknown): boolean {
+    if (meta === undefined) return true
+    if (!meta || typeof meta !== 'object') return false
+    const value = meta as { source?: unknown; tags?: unknown }
+    if (value.source !== undefined && typeof value.source !== 'string') return false
+    if (value.tags !== undefined) {
+      if (!Array.isArray(value.tags)) return false
+      if (value.tags.some((tag) => typeof tag !== 'string')) return false
+    }
+    return true
+  }
+
+  private isValidTrace(trace: unknown): boolean {
+    if (trace === undefined) return true
+    if (!trace || typeof trace !== 'object') return false
+    const value = trace as { traceId?: unknown; spanId?: unknown; parentSpanId?: unknown }
+    if (value.traceId !== undefined && typeof value.traceId !== 'string') return false
+    if (value.spanId !== undefined && typeof value.spanId !== 'string') return false
+    if (value.parentSpanId !== undefined && typeof value.parentSpanId !== 'string') return false
+    return true
   }
 
   private async runMiddleware<K extends EventKey<Events>>(
